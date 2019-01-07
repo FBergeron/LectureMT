@@ -1,0 +1,4 @@
+[General]
+SwaggerCodegenHome: /home/user/swagger-codegen-3.0.3
+ApiBaseUrl: https://www.example.com
+ApiDocOutputDir: /tmp/api

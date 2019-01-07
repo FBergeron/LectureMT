@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+import configparser
+import subprocess
+import tempfile
+
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+with tempfile.NamedTemporaryFile() as api_file:
+    with open('doc/api-1.0.yaml', 'r') as api_template_file:
+        for line_number, line in enumerate(api_template_file):
+            line = line.replace('$API_BASE_URL', config['RestApi']['ApiBaseUrl'])
+            api_file.write(line.encode())
+        api_file.flush()
+    
+    gen_command = "cd {0} && java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar generate -i {1} -l html2 -o {2}".format(config['RestApi']['SwaggerCodegenHome'], api_file.name, config['RestApi']['ApiDocOutputDir'])
+    subprocess.call(gen_command, shell=True)

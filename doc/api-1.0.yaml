@@ -1,0 +1,81 @@
+openapi: 3.0.2
+info:
+  title: LectureMT API
+  description: Translate lecture texts from Japanese to English interactively.
+  version: '1.0'
+  contact:
+    name: Frederic Bergeron
+    email: bergeron@nlp.ist.i.kyoto-u.ac.jp
+  license:
+    name: GPL 3.0
+servers:
+- url: '$API_BASE_URL/LectureMT/api/1.0'
+  description: Production server
+- url: '$API_BASE_URL/LectureMT-dev/api/1.0'
+  description: Development server
+paths:
+  /version:
+    get:
+      summary: Returns the version of the API.
+      responses:
+        200:
+          description: "Succesful operation."
+  /translations:
+    get:
+      summary: Returns the list of translations.
+      responses:
+        200:
+          description: "Succesful operation."
+  /translation:
+    post:
+      summary: Submits a new translation.
+      responses:
+        200:
+          description: "Succesful operation."
+  /translation/{id}:
+    get:
+      summary: Obtains information about a translation.
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "Identifier of the translation."
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: "Succesful operation."
+        404:
+          description: "Translation not found."
+    delete:
+      summary: Removes/cancels a translation.
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "Identifier of the translation."
+        required: true
+        schema:
+          type: string
+      responses:
+        204:
+          description: "Translation deleted."
+        default:
+          description: "Unexpected error."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+          
+          
