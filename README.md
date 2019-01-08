@@ -11,6 +11,14 @@ pip install -r requirements.txt
 ```
 
 
+#### Logging
+
+```bash
+cp conf/config_logging.ini.sample conf/config_logging.ini
+mkdir logs
+```
+
+
 #### To configure everything:
 
 In order for the various scripts to work properly, the ```config.ini``` file contains several variables that need to be set properly according to your environment.
@@ -32,7 +40,6 @@ cd
 wget http://ftp.kddilabs.jp/infosystems/apache/maven/maven-3/3.6.0/binaries/apache-maven-3.6.0-bin.tar.gz
 tar zxf apache-maven-3.6.0-bin.tar.gz
 ```
-
 
 
 #### To install Swagger Code Generator:
@@ -65,4 +72,20 @@ As this operation is destructive, it's possible to run it with the --dry-run opt
 ```bash
 bin/deploy_www --dry-run
 ```
+
+
+#### To start the server:
+
+```bash
+python lecturemt/server.py
+```
+
+
+#### To test a request with the client:
+
+```bash
+cat request.json | python lecturemt/client.py
+```
+
+
 

@@ -5,3 +5,7 @@ WwwDir: /home/user/public_html/LectureMT
 [RestApi]
 SwaggerCodegenHome: /home/user/swagger-codegen-3.0.3
 ApiDocOutputDir: /tmp/api
+
+[Server]
+Host: localhost
+Port: 46000 

@@ -13,4 +13,20 @@ rsync_params = sys.argv[1] if (len(sys.argv) > 1) else ""
 rsync_command = "rsync {0} -az --force --delete --progress --exclude-from=rsync_exclude.txt www/. {1}".format(rsync_params, config['Www']['WwwDir'])
 print(rsync_command)
 return_code = subprocess.call(rsync_command, shell=True)
-sys.exit(return_code)
+
+if return_code != 0:
+    sys.exit(return_code)
+
+rsync_command = "rsync {0} -az --force --delete --progress --exclude-from=rsync_exclude.txt lecturemt {1}/1.0/cgi-bin".format(rsync_params, config['Www']['WwwDir'])
+print(rsync_command)
+return_code = subprocess.call(rsync_command, shell=True)
+
+if return_code != 0:
+    sys.exit(return_code)
+
+with open("{0}/1.0/cgi-bin/config.ini".format(config['Www']['WwwDir']), 'w') as www_config_file:
+    www_config_file.write("[Server]\n")
+    www_config_file.write("Host: {0}\n".format(config['Server']['Host']))
+    www_config_file.write("Port: {0}\n".format(config['Server']['Port']))
+
+sys.exit(0)
