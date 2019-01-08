@@ -19,7 +19,7 @@ def index(name):
     return template('<b>Hello {{name}}</b>!', name=name) 
 
 @get('/api_version')
-def index():
+def get_api_version():
     return '1.0'
 
 @get('/server_version')
@@ -34,7 +34,7 @@ def get_server_version():
     return response
 
 @get('/translations')
-def index():
+def get_translations():
     resp = '<ul>'
     for trans in translations:
         resp += '<li>{0}</li>'.format(trans)
@@ -42,12 +42,12 @@ def index():
     return resp
 
 @get('/things')
-def index():
+def get_things():
     my_dict = {1: 'apple', 2: 'ball'}
     return my_dict
 
 @post('/translation/<id>')
-def index(id):
+def get_translation(id):
     translations.append(id)
     resp = '<ul>'
     for trans in translations:
@@ -56,7 +56,7 @@ def index(id):
     return resp
 
 @delete('/translation/<id>')
-def index(id):
+def delete_translation(id):
     translations.remove(int(id))
     resp = '<ul>'
     for trans in translations:

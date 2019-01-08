@@ -14,9 +14,15 @@ servers:
 - url: '$API_BASE_URL/LectureMT-dev/api/1.0'
   description: Development server
 paths:
-  /version:
+  /api-version:
     get:
       summary: Returns the version of the API.
+      responses:
+        200:
+          description: "Succesful operation."
+  /server-version:
+    get:
+      summary: Returns the version of the server.
       responses:
         200:
           description: "Succesful operation."
