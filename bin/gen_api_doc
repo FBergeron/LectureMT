@@ -2,6 +2,7 @@
 
 import configparser
 import subprocess
+import sys
 import tempfile
 
 config = configparser.ConfigParser()
@@ -10,9 +11,11 @@ config.read("config.ini")
 with tempfile.NamedTemporaryFile() as api_file:
     with open('doc/api-1.0.yaml', 'r') as api_template_file:
         for line_number, line in enumerate(api_template_file):
-            line = line.replace('$API_BASE_URL', config['RestApi']['ApiBaseUrl'])
+            line = line.replace('$API_BASE_URL', config['Www']['BaseUrl'])
             api_file.write(line.encode())
         api_file.flush()
     
     gen_command = "cd {0} && java -jar modules/swagger-codegen-cli/target/swagger-codegen-cli.jar generate -i {1} -l html2 -o {2}".format(config['RestApi']['SwaggerCodegenHome'], api_file.name, config['RestApi']['ApiDocOutputDir'])
-    subprocess.call(gen_command, shell=True)
+    print(gen_command)
+    return_code = subprocess.call(gen_command, shell=True)
+    sys.exit(return_code)

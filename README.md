@@ -11,6 +11,8 @@ vim config.ini
 :wq
 ```
 
+At first, it might be difficult to know how to initialize some variables.  Leave them as they are for now and keep reading.  The rest of the documentation should clarify that.
+
 
 #### To install Maven:
 
@@ -41,4 +43,15 @@ bin/gen_rest_api_doc
 ```
 
 
+#### To deploy the web site on the server:
+
+```bash
+bin/deploy_www
+```
+
+As this operation is destructive, it's possible to run it with the --dry-run option like this:
+
+```bash
+bin/deploy_www --dry-run
+```
 

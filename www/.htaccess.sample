@@ -1,0 +1,10 @@
+# Required to support REST methods.
+<Limit GET HEAD POST PUT DELETE OPTIONS>
+Require all granted
+</Limit>
+
+# This section is used when the bottle server works in CGI mode.
+RewriteEngine On
+RewriteBase /~username/LectureMT/
+RewriteRule "api/(.*?)/(.*)" "$1/cgi-bin/api.cgi/$2"
+
