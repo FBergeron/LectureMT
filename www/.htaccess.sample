@@ -3,6 +3,14 @@
 Require all granted
 </Limit>
 
+
+# Deny access to Python files.
+<FilesMatch ".py*$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+
 # This section is used when the bottle server works in CGI mode.
 RewriteEngine On
 RewriteBase /~username/LectureMT/
