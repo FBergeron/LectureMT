@@ -6,7 +6,7 @@ import sys
 import tempfile
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("conf/config.ini")
 
 with tempfile.NamedTemporaryFile() as api_file:
     with open('doc/api-1.0.yaml', 'r') as api_template_file:

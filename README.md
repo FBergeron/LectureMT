@@ -1,5 +1,16 @@
 ### Some useful things to know.
 
+#### Environment
+
+Prepare a Python virtualenv with the required dependencies:
+
+```bash
+virtualenv -p python3 ~/python_envs/web_LectureMT
+source ~/python_envs/web_lectureMT
+pip install -r requirements.txt  
+```
+
+
 #### To configure everything:
 
 In order for the various scripts to work properly, the ```config.ini``` file contains several variables that need to be set properly according to your environment.
