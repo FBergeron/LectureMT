@@ -61,6 +61,20 @@ bin/gen_rest_api_doc
 ```
 
 
+#### To manage the accounts
+
+The access to the REST API is private and requires an account.
+The current method used to implement the authentication is the Basic Authentication on top of HTTPS.
+Eventually, this could be replaced by a more flexible and secure authentication method.
+
+For now, to manage the accounts, it's necessary to edit a .htpasswd file.
+This file must be located on a non-web location and must be referred in the .htaccess file at the AuthUserFile directive.
+To add users, the htpasswd tool can be used.  Otherwise, it's also possible to edit the file manually using an online tool like
+this one found here:
+
+https://www.web2generators.com/apache-tools/htpasswd-generator
+
+
 #### To deploy the web site on the server:
 
 ```bash
@@ -87,5 +101,17 @@ python lecturemt/server.py
 cat request.json | python lecturemt/client.py
 ```
 
+
+#### To perform a call using the REST API:
+
+```bash
+curl --user guest:guest -X GET $API_BASE_URL/LectureMT/api/1.0/say/Hello
+curl --user guest:guest -X GET $API_BASE_URL/LectureMT/api/1.0/api_version
+curl --user guest:guest -X GET $API_BASE_URL/LectureMT/api/1.0/server_version
+curl --user guest:guest -X GET $API_BASE_URL/LectureMT/api/1.0/translations
+curl --user guest:guest -X POST $API_BASE_URL/LectureMT/api/1.0/translation
+curl --user guest:guest -X GET $API_BASE_URL/LectureMT/api/1.0/translation/{trans_id}
+curl --user guest:guest -X DELETE $API_BASE_URL/LectureMT/api/1.0/translation/{trans_id}
+```
 
 

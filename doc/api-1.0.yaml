@@ -1,7 +1,7 @@
 openapi: 3.0.2
 info:
   title: LectureMT API
-  description: Translate lecture texts from Japanese to English interactively.
+  description: Translate lecture texts from Japanese to English.
   version: '1.0'
   contact:
     name: Frederic Bergeron
@@ -14,6 +14,19 @@ servers:
 - url: '$API_BASE_URL/LectureMT-dev/api/1.0'
   description: Development server
 paths:
+  /say/{msg}:
+    get:
+      summary: Dummy method that displays a message and its author.
+      parameters:
+      - name: "msg"
+        in: "path"
+        description: "Message to be shown."
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: "Succesful operation."
   /api-version:
     get:
       summary: Returns the version of the API.

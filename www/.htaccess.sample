@@ -1,6 +1,9 @@
 # Required to support REST methods.
 <Limit GET HEAD POST PUT DELETE OPTIONS>
-Require all granted
+AuthType Basic
+AuthUserFile /home/user/.htpasswd
+AuthName "LectureMT REST API"
+Require valid-user
 </Limit>
 
 
