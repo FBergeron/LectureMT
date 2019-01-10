@@ -76,6 +76,8 @@ paths:
       responses:
         200:
           description: "Succesful operation."
+        400:
+          description: "Invalid request."
   /translation/{id}:
     get:
       summary: Obtains information about a translation.
