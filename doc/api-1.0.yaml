@@ -39,6 +39,31 @@ paths:
       responses:
         200:
           description: "Succesful operation."
+  /server-status:
+    get:
+      summary: Returns the server status (load, current tranlations, etc.)
+      responses:
+        200:
+          description: "Succesful operation."
+  /translation_queues:
+    get:
+      summary: Returns the translation queues.
+      responses:
+        200:
+          description: "Succesful operation."
+  /translation_queue/{id}:
+    get:
+      summary: Return the translation queue.
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "Identifier of the translation queue."
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: "Succesful operation."
   /translations:
     get:
       summary: Returns the list of translations.

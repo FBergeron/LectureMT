@@ -7,28 +7,72 @@ __version__ = "1.0"
 __email__ = "bergeron@nlp.ist.i.kyoto-u.ac.jp"
 __status__ = "Development"
 
-import json
+from collections import deque
 import configparser
+import json
 import logging
 import logging.config
+import queue
 import socket
 import socketserver
 import sys
 import threading
 import timeit
+import uuid
 
 BUFFER_SIZE = 4096
 
 EOM = "==== EOM ===="
 
+lang_pairs = ['ja-en']
+
 log = None
  
 logging.basicConfig()
 
+class RequestQueue(queue.Queue):
+
+    def __init__(self):
+        queue.Queue.__init__(self)
+
 class Manager(object):
 
     def __init__(self):
-        pass
+        self.translations = {}
+        self.mutex = threading.Lock()
+
+
+    def get_translations(self, user_id):
+        if user_id == "admin":
+            return self.translations 
+        else:
+            return {k : v for k, v in self.translations.items() if v['owner'] == user_id}
+
+    def add_translation(self, translation):
+        self.translations[translation['id']] = translation
+        return translation
+
+    def get_translation(self, user_id, translation_id):
+        if not translation_id in self.translations:
+            return {}
+        
+        translation = self.translations[translation_id]
+        if user_id == "admin":
+            return translation
+        
+        return translation if translation['owner'] == user_id else {}
+
+    def remove_translation(self, user_id, translation_id):
+        if not translation_id in self.translations:
+            return {}
+        
+        translation = self.translations[translation_id]
+        if user_id in ["admin", translation['owner']]:
+            del self.translations[translation_id]
+            return translation
+
+        return {}
+
 
 class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
@@ -73,8 +117,29 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
                     log.info("Invalid JSON data. Request ignored.")
 
                 if json_data:    
-                    if json_data['type'] == 'get_server_version':
+                    if json_data['action'] == 'get_server_version':
                         response = {'server_version': '1.0'}
+                    elif json_data['action'] == 'get_server_status':
+                        response = {'server_status': 'OK'}
+                    elif json_data['action'] == 'get_translations':
+                        log.debug("get_transactions user_id={0}".format(json_data['user_id']))
+                        response = self.manager.get_translations(json_data['user_id'])
+                    elif json_data['action'] == 'add_translation':
+                        log.debug("add_translation user_id={0}".format(json_data['user_id']))
+                        translation = {}
+                        translation['id'] = str(uuid.uuid4())
+                        translation['owner'] = json_data['user_id']
+                        translation['lang_source'] = json_data['lang_source']
+                        translation['lang_target'] = json_data['lang_target']
+                        translation['text_source'] = json_data['text_source']
+                        translation['date_submission'] = json_data['date_submission']
+                        response = self.manager.add_translation(translation)
+                    elif json_data['action'] == 'get_translation':
+                        log.debug("get_translation user_id={0}".format(json_data['user_id']))
+                        response = self.manager.get_translation(json_data['user_id'], json_data['translation_id'])
+                    elif json_data['action'] == 'remove_translation':
+                        log.debug("remove_translation user_id={0}".format(json_data['user_id']))
+                        response = self.manager.remove_translation(json_data['user_id'], json_data['translation_id'])
 
                     log.debug("Request processed in {0} s. by {1}".format(timeit.default_timer() - start_request, threading.current_thread().name))
                     response = json.dumps(response)
