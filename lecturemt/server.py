@@ -13,10 +13,12 @@ import json
 import logging
 import logging.config
 import queue
+from random import randint
 import socket
 import socketserver
 import sys
 import threading
+from time import sleep
 import timeit
 import uuid
 
@@ -30,17 +32,54 @@ log = None
  
 logging.basicConfig()
 
+
 class RequestQueue(queue.Queue):
 
     def __init__(self):
         queue.Queue.__init__(self)
 
+
+class Worker(threading.Thread):
+
+    def __init__(self, name, lang_pair, host, port, manager):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.lang_pair = lang_pair
+        self.lang_source, self.lang_target = self.lang_pair.split("-")
+        self.host = host
+        self.port = port
+        self.manager = manager
+
+    def run(self):
+        while True:
+            translation_id = self.manager.translation_request_queues[self.lang_pair].get(True)
+            log.debug("Start processing request {0} by worker {1}...".format(translation_id, self.name))
+            self.manager.update_status_translation(translation_id, "PROCESSING")
+            start_request = timeit.default_timer()
+            sleep(randint(15, 30))
+            self.manager.update_text_translation(translation_id, "This text has been translated.")
+            processing_time = timeit.default_timer() - start_request
+            log.debug("Finish processing request {0} by worker {1} in {2} s.".format(translation_id, self.name, processing_time)) 
+
+
 class Manager(object):
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.translations = {}
+        self.translation_request_queues = {}
+        self.workers = {}
         self.mutex = threading.Lock()
-
+       
+        lang_pairs = set([section[18:23] for section in self.config.sections() if section.startswith("TranslationServer_")])
+        for lang_pair in lang_pairs:
+            self.translation_request_queues[lang_pair] = RequestQueue()
+            workerz = []
+            self.workers[lang_pair] = workerz
+            for idx, server_section in enumerate([section for section in self.config.sections() if section.startswith("TranslationServer_") and section[18:23] == lang_pair]):
+                worker = Worker("Translater-{0}_{1} ({2}:{3})".format(idx, lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port']), lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port'], self)
+                workerz.append(worker)
+                worker.start()
 
     def get_translations(self, user_id):
         if user_id == "admin":
@@ -48,8 +87,39 @@ class Manager(object):
         else:
             return {k : v for k, v in self.translations.items() if v['owner'] == user_id}
 
+    def update_status_translation(self, id, status):
+        self.mutex.acquire()
+        if id in self.translations:
+            self.translations[id]['status'] = status
+        self.mutex.release()
+
+    def update_text_translation(self, id, text):
+        self.mutex.acquire()
+        if id in self.translations:
+            self.translations[id]['text_target'] = text
+            self.translations[id]['status'] = 'PROCESSED'
+        self.mutex.release()
+
     def add_translation(self, translation):
+        lang_pair = "{0}-{1}".format(translation['lang_source'], translation['lang_target'])
+
+        # Ignore the translation if it concerns an unsupported language pair.
+        if not lang_pair in self.translation_request_queues:
+            return {}
+
+        self.mutex.acquire()
+        translation['status'] = "PENDING"
         self.translations[translation['id']] = translation
+
+        # For now, I assume that the translation is a single sentence.
+        # For example, a client application could split the text in several sentences and
+        # submit each sentence using the REST API.
+        # Otherwise, we need to split the text here in several sentences and
+        # associate the subtranslation (for a sentence) to the parent translation (the whole text).
+
+        self.translation_request_queues[lang_pair].put(translation['id'])
+        self.mutex.release()
+
         return translation
 
     def get_translation(self, user_id, translation_id):
@@ -126,6 +196,7 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
                         response = self.manager.get_translations(json_data['user_id'])
                     elif json_data['action'] == 'add_translation':
                         log.debug("add_translation user_id={0}".format(json_data['user_id']))
+
                         translation = {}
                         translation['id'] = str(uuid.uuid4())
                         translation['owner'] = json_data['user_id']
@@ -133,6 +204,7 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
                         translation['lang_target'] = json_data['lang_target']
                         translation['text_source'] = json_data['text_source']
                         translation['date_submission'] = json_data['date_submission']
+                        
                         response = self.manager.add_translation(translation)
                     elif json_data['action'] == 'get_translation':
                         log.debug("get_translation user_id={0}".format(json_data['user_id']))
@@ -148,8 +220,8 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
         return ServerRequestHandler
 
-    def __init__(self, server_address):
-        self.manager = Manager()
+    def __init__(self, server_address, config):
+        self.manager = Manager(config)
         handler_class = self.make_request_handler(self.manager)
         socketserver.TCPServer.__init__(self, server_address, handler_class)
 
@@ -161,7 +233,7 @@ def do_start_server(config_file, log_config):
 
     config = configparser.ConfigParser()
     config.read(config_file)
-    server = Server((config['Server']['Host'], int(config['Server']['Port'])))
+    server = Server((config['Server']['Host'], int(config['Server']['Port'])), config)
     ip, port = server.server_address
     log.info("Start listening for requests on {0}:{1}...".format(socket.gethostname(), port))
 

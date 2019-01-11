@@ -9,3 +9,28 @@ ApiDocOutputDir: /tmp/api
 [Server]
 Host: localhost
 Port: 46000 
+
+[TranslationServer_ja-en_1]
+Host: host100
+Port: 46101
+
+[TranslationServer_ja-en_2]
+Host: host100
+Port: 46102
+
+[TranslationServer_ja-en_3]
+Host: host100
+Port: 46103
+
+[TranslationServer_ja-fr_1]
+Host: host100
+Port: 46201
+
+[TranslationServer_ja-fr_2]
+Host: host100
+Port: 46202
+
+[TranslationServer_ja-fr_3]
+Host: host100
+Port: 46203
+

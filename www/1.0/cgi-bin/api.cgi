@@ -82,6 +82,11 @@ def add_translation():
         resp = client.submit(req)
     except:
         resp = str(sys.exc_info()[0])
+
+    if resp == "{}":
+        response.status = 400
+        return 'Invalid request.'
+
     return resp
 
 @get('/translation/<id>')
