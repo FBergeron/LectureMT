@@ -13,10 +13,6 @@ import sys
 config = configparser.ConfigParser()
 config.read("config.ini")
 
-@get('/say/<msg>') 
-def say(msg): 
-    return template('<b>{{username}}: {{msg}}</b>!', username=request.environ['REMOTE_USER'], msg=msg) 
-
 @get('/api_version')
 def get_api_version():
     return '1.0'
@@ -87,6 +83,7 @@ def add_translation():
         response.status = 400
         return 'Invalid request.'
 
+    response.status = 201
     return resp
 
 @get('/translation/<id>')

@@ -14,19 +14,6 @@ servers:
 - url: '$API_BASE_URL/$VIRTUAL_DIR/api/1.0'
   description: Development server
 paths:
-  /say/{msg}:
-    get:
-      summary: Dummy method that displays a message and its author.
-      parameters:
-      - name: "msg"
-        in: "path"
-        description: "Message to be shown."
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: "Succesful operation."
   /api-version:
     get:
       summary: Returns the version of the API.
@@ -73,9 +60,16 @@ paths:
   /translation:
     post:
       summary: Submits a new translation.
+      requestBody:
+        description: A translation request expressed in JSON.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TranslationRequest'
       responses:
-        200:
-          description: "Succesful operation."
+        201:
+          description: "Created."
         400:
           description: "Invalid request."
   /translation/{id}:
@@ -113,6 +107,19 @@ paths:
                 $ref: '#/components/schemas/Error'
 components:
   schemas:
+    TranslationRequest:
+      title: A Translation Request
+      type: object
+      properties:
+        lang_source:
+          type: string
+          description: 2-letters code expressing the source language (ja for Japanese).
+        lang_target:
+          type: string
+          description: 2-letters code expressing the target language (en for English).
+        text_source:
+          type: string
+          description: Text to be translated.
     Error:
       required:
         - code
