@@ -9,6 +9,7 @@ ApiDocOutputDir: /tmp/api
 [Server]
 Host: localhost
 Port: 46000 
+SegmentationCommand: echo 'TEXT' | python ~/commandserver-LectureMT/src/CommandClient.py --host HOST --port PORT --bufsize 32768
 
 [TranslationServer_ja-en_1]
 Host: host100
@@ -33,4 +34,28 @@ Port: 46202
 [TranslationServer_ja-fr_3]
 Host: host100
 Port: 46203
+
+[SegmentationServer_ja-en_1]
+Host: host100
+Port: 16301
+
+[SegmentationServer_ja-en_2]
+Host: host100
+Port: 16302
+
+[SegmentationServer_ja-en_3]
+Host: host100
+Port: 16303
+
+[SegmentationServer_ja-fr_1]
+Host: host100
+Port: 17301
+
+[SegmentationServer_ja-fr_2]
+Host: host100
+Port: 17302
+
+[SegmentationServer_ja-fr_3]
+Host: host100
+Port: 17303
 

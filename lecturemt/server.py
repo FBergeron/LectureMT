@@ -14,13 +14,17 @@ import logging
 import logging.config
 import queue
 from random import randint
+import re
 import socket
 import socketserver
+import subprocess
 import sys
 import threading
 from time import sleep
 import timeit
 import uuid
+
+from translation_client import Client
 
 BUFFER_SIZE = 4096
 
@@ -41,13 +45,16 @@ class RequestQueue(queue.Queue):
 
 class Worker(threading.Thread):
 
-    def __init__(self, name, lang_pair, host, port, manager):
+    def __init__(self, name, lang_pair, translator_host, translator_port, segmenter_host, segmenter_port, segmenter_command, manager):
         threading.Thread.__init__(self)
         self.name = name
         self.lang_pair = lang_pair
         self.lang_source, self.lang_target = self.lang_pair.split("-")
-        self.host = host
-        self.port = port
+        self.translator_host = translator_host
+        self.translator_port = translator_port
+        self.segmenter_host = segmenter_host
+        self.segmenter_port = segmenter_port
+        self.segmenter_command = segmenter_command
         self.manager = manager
 
     def run(self):
@@ -56,10 +63,32 @@ class Worker(threading.Thread):
             log.debug("Start processing request {0} by worker {1}...".format(translation_id, self.name))
             self.manager.update_status_translation(translation_id, "PROCESSING")
             start_request = timeit.default_timer()
-            sleep(randint(15, 30))
-            self.manager.update_text_translation(translation_id, "This text has been translated.")
+            
+            log.debug("translator: {0}:{1} segmenter: {2}:{3}".format(self.translator_host, self.translator_port, self.segmenter_host, self.segmenter_port))
+            translation = self.manager.get_translation("admin", translation_id)
+            log.debug("translation: {0}".format(translation))
+            log.debug("text to translate: {0}".format(translation['text_source']))
+
+            segmenter_cmd = re.sub(r'TEXT', translation['text_source'], self.segmenter_command)
+            segmenter_cmd = re.sub(r'HOST', self.segmenter_host, segmenter_cmd)
+            segmenter_cmd = re.sub(r'PORT', self.segmenter_port, segmenter_cmd)
+            log.debug("cmd={0}".format(segmenter_cmd))
+
+            segmenter_output = subprocess.check_output(segmenter_cmd, shell=True, universal_newlines=True)
+            segmenter_output = segmenter_output.strip()
+            log.debug("segmenter_output={0}".format(segmenter_output))
+            
+            client = Client(self.translator_host, int(self.translator_port), log)
+            response = client.submit(segmenter_output)
+
+            log.debug("response={0}".format(response))
+
+            self.manager.update_text_translation(translation_id, response)
             processing_time = timeit.default_timer() - start_request
             log.debug("Finish processing request {0} by worker {1} in {2} s.".format(translation_id, self.name, processing_time)) 
+
+
+
 
 
 class Manager(object):
@@ -77,7 +106,9 @@ class Manager(object):
             workerz = []
             self.workers[lang_pair] = workerz
             for idx, server_section in enumerate([section for section in self.config.sections() if section.startswith("TranslationServer_") and section[18:23] == lang_pair]):
-                worker = Worker("Translater-{0}_{1} ({2}:{3})".format(idx, lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port']), lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port'], self)
+                server_number = server_section[server_section.rfind('_') + 1:]
+                segmentation_server_prop_name = "SegmentationServer_{0}_{1}".format(lang_pair, server_number)
+                worker = Worker("Translater-{0}_{1} ({2}:{3})".format(idx, lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port']), lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port'], self.config[segmentation_server_prop_name]['Host'], self.config[segmentation_server_prop_name]['Port'], self.config['Server']['SegmentationCommand'], self)
                 workerz.append(worker)
                 worker.start()
 
