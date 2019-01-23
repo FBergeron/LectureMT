@@ -9,9 +9,9 @@ info:
   license:
     name: GPL 3.0
 servers:
-- url: '$API_BASE_URL/LectureMT/api/1.0'
+- url: '$API_BASE_URL/$VIRTUAL_DIR/api/1.0'
   description: Production server
-- url: '$API_BASE_URL/LectureMT-dev/api/1.0'
+- url: '$API_BASE_URL/$VIRTUAL_DIR/api/1.0'
   description: Development server
 paths:
   /say/{msg}:

@@ -12,6 +12,7 @@ with tempfile.NamedTemporaryFile() as api_file:
     with open('doc/api-1.0.yaml', 'r') as api_template_file:
         for line_number, line in enumerate(api_template_file):
             line = line.replace('$API_BASE_URL', config['Www']['BaseUrl'])
+            line = line.replace('$VIRTUAL_DIR', config['Www']['VirtualDir'])
             api_file.write(line.encode())
         api_file.flush()
     

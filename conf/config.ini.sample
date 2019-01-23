@@ -1,5 +1,6 @@
 [Www]
 BaseUrl: https://www.example.com
+VirtualDir: LectureMT
 WwwDir: /home/user/public_html/LectureMT
 
 [RestApi]
