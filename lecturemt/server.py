@@ -245,7 +245,7 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
                         response = self.manager.remove_translation(json_data['user_id'], json_data['translation_id'])
 
                     log.debug("Request processed in {0} s. by {1}".format(timeit.default_timer() - start_request, threading.current_thread().name))
-                    response = json.dumps(response)
+                    response = json.dumps(response, ensure_ascii=False)
                     log.debug("Response from server={0}".format(response))
                     self.request.sendall(response.encode('utf-8'))
 
