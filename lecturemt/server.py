@@ -9,6 +9,7 @@ __status__ = "Development"
 
 from collections import deque
 import configparser
+import datetime
 import json
 import logging
 import logging.config
@@ -129,6 +130,7 @@ class Manager(object):
         self.mutex.acquire()
         if id in self.translations:
             self.translations[id]['text_target'] = text
+            self.translations[id]['date_processsed'] = str(datetime.datetime.now().time())
             self.translations[id]['status'] = 'PROCESSED'
         self.mutex.release()
 
@@ -282,3 +284,5 @@ def do_start_server(config_file, log_config):
 
 if __name__ == "__main__":
     do_start_server("conf/config.ini", "conf/config_logging.ini")
+
+

@@ -72,7 +72,7 @@ def add_translation():
                    '"lang_source": "{{lang_source}}", "lang_target": "{{lang_target}}", ' \
                    '"text_source": "{{text_source}}", ' \
                    '"date_submission": "{{date_submission}}"}'
-    req = template(str_template, user_id=request.environ['REMOTE_USER'], lang_source=json_content['lang_source'], lang_target=json_content['lang_target'], text_source=json_content['text_source'], date_submission=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    req = template(str_template, user_id=request.environ['REMOTE_USER'], lang_source=json_content['lang_source'], lang_target=json_content['lang_target'], text_source=json_content['text_source'], date_submission=datetime.datetime.now().time())
     resp = {}
     try:
         resp = client.submit(req)
@@ -111,4 +111,6 @@ def delete_translation(id):
     return resp
 
 run(server='cgi') 
+
+
 
