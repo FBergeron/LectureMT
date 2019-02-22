@@ -10,6 +10,17 @@ source ~/python_envs/web_lectureMT
 pip install -r requirements.txt  
 ```
 
+Special note: 
+
+At the moment, the version of knmt in pip is too old.
+So it's required to do that:
+
+```bash
+pip uninstall knmt
+cd ~/knmt-latest
+pip install -e .
+```
+
 
 #### Logging
 

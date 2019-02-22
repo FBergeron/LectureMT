@@ -24,7 +24,7 @@ from time import sleep
 import timeit
 import uuid
 
-from translation_client import OpenNMTClient
+from translation_client import OpenNMTClient, KNMTClient
 
 BUFFER_SIZE = 4096
 
@@ -78,7 +78,8 @@ class Worker(threading.Thread):
             segmenter_output = segmenter_output.strip()
             log.debug("segmenter_output={0}".format(segmenter_output))
             
-            client = OpenNMTClient(self.translator_host, int(self.translator_port), log)
+            # client = OpenNMTClient(self.translator_host, int(self.translator_port), log)
+            client = KNMTClient(self.translator_host, int(self.translator_port), log)
             response = client.submit(segmenter_output)
 
             log.debug("response={0}".format(response))

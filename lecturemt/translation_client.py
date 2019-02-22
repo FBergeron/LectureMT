@@ -14,6 +14,7 @@ import logging.config
 import urllib.parse
 import sys
 
+from nmt_chainer.translation.client import Client
 
 class TranslationClient:
     
@@ -22,6 +23,7 @@ class TranslationClient:
 
 
 class OpenNMTClient:
+
     def __init__(self, host='localhost', port=46001, logger=None):
         self.host = host
         self.port = port
@@ -70,8 +72,30 @@ class OpenNMTClient:
         # data = response.read()
         # print("data={0}".format(data))
 
+
+class KNMTClient:
+
+    def __init__(self, host='localhost', port=46001, logger=None):
+        self.host = host
+        self.port = port
+        self.logger = logger
+        self.client = Client(host, port)
+
+    def submit(self, text):
+        knmt_response = self.client.query( text, article_id=1, beam_width=30, nb_steps=50, nb_steps_ratio=1.5, 
+            beam_score_length_normalization='none', beam_score_length_normalization_strength=0.2, post_score_length_normalization='simple', post_score_length_normalization_strength=0.2,
+            beam_score_coverage_penalty='none', beam_score_coverage_penalty_strength=0.2, post_score_coverage_penalty='none', post_score_coverage_penalty_strength=0.2,
+            prob_space_combination=False, normalize_unicode_unk=True, remove_unk=False, attempt_to_relocate_unk_source=False, sentence_id=1)
+        self.logger.debug("knmt_response={0}".format(knmt_response))
+
+        json_knmt_resp = json.loads(knmt_response)
+
+        headers = {"Content-type": "application/json"}
+        translated_text = json_knmt_resp['out']
+        return translated_text
+
+
 def main():
-    # logging.basicConfig()
     log = logging.getLogger("default")
 
     import argparse
