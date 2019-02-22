@@ -14,8 +14,14 @@ import logging.config
 import urllib.parse
 import sys
 
-class Client:
 
+class TranslationClient:
+    
+    def submit(self, text):
+        pass
+
+
+class OpenNMTClient:
     def __init__(self, host='localhost', port=46001, logger=None):
         self.host = host
         self.port = port
@@ -74,7 +80,7 @@ def main():
     parser.add_argument("--port", help = "Port of the server", default = 46001)
     args = parser.parse_args()
 
-    client = Client(args.host, int(args.port), log)
+    client = OpenNMTClient(args.host, int(args.port), log)
     request = ''
     for line in sys.stdin:
         request += line

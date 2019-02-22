@@ -24,7 +24,7 @@ from time import sleep
 import timeit
 import uuid
 
-from translation_client import Client
+from translation_client import OpenNMTClient
 
 BUFFER_SIZE = 4096
 
@@ -78,7 +78,7 @@ class Worker(threading.Thread):
             segmenter_output = segmenter_output.strip()
             log.debug("segmenter_output={0}".format(segmenter_output))
             
-            client = Client(self.translator_host, int(self.translator_port), log)
+            client = OpenNMTClient(self.translator_host, int(self.translator_port), log)
             response = client.submit(segmenter_output)
 
             log.debug("response={0}".format(response))
@@ -227,6 +227,7 @@ class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
                         response = self.manager.get_translations(json_data['user_id'])
                     elif json_data['action'] == 'add_translation':
                         log.debug("add_translation user_id={0}".format(json_data['user_id']))
+                        log.debug("text_source={0}".format(json_data['text_source']))
 
                         translation = {}
                         translation['id'] = str(uuid.uuid4())
