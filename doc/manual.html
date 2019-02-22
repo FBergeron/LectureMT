@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LectureMT - Manual</title>
+  <style>
+    table {
+        border: 1px solid;
+    }
+
+    table td {
+        border: 1px solid;
+        collapse: collapse;
+    }
+
+    .code {
+        background-color: #eeeeee;
+        padding: 10px;
+    }
+  </style>
+</head>
+<body>
+<h1>Manual for LectureMT API</h1>
+<p>
+The API documentation is here:
+</p><p>
+<a href="https://lotus.kuee.kyoto-u.ac.jp/~frederic/tmp/LectureMT-dev_API.html">https://lotus.kuee.kyoto-u.ac.jp/~frederic/tmp/LectureMT-dev_API.html</a>
+</p><p>
+The access to the API requireѕ Basic Authentication.  
+</p><p>
+For now, the following accounts exist:
+</p><p>
+<table>
+<tr><th>Login</th><th>Password</th></tr>
+<tr><td>admin</td><td>admin</td></tr>
+<tr><td>fred</td><td>fred</td></tr>
+<tr><td>fabien</td><td>fabien</td></tr>
+<tr><td>toshiaki</td><td>toshiaki</td></tr>
+<tr><td>haiyue</td><td>haiyue</td></tr>
+</table>
+<p>
+Here are a few requests demonstrating how to use the API:
+</p><p>
+To list all the current translations in the system:
+</p><p>
+<pre class="code">
+curl --user admin:admin -X GET https://lotus.kuee.kyoto-u.ac.jp/~frederic/LectureMT-dev/api/1.0/translations | jq '.'
+</pre>
+
+<hr/>
+To submit a translation request:
+
+<pre class="code">
+curl --user fred:fred -d "@post_trans_1.json" -X POST https://lotus.kuee.kyoto-u.ac.jp/~frederic/LectureMT-dev/api/1.0/translation | jq '.'
+</pre>
+
+The content of the file post_trans_1.json looks like this:
+
+<pre class="code">
+cat post_trans_1.json
+{
+    "lang_source": "ja",
+    "lang_target": "en",
+    "text_source": "アルゴリズムとデータ構造の講義ですけれどもきょうは整列について"
+}
+</pre>
+
+The response should be something that looks like:
+
+<pre class="code">
+{
+    "id": "4f697593-f6ed-49b1-85c3-2b250dad1ad2", 
+    "owner": "fred", 
+    "lang_source": "ja", 
+    "lang_target": "en", 
+    "text_source": "アルゴリズムとデータ構造の講義ですけれどもきょうは整列について", 
+    "date_submission": "2019-01-23 11:55:29", 
+    "status": "PENDING"
+}
+</pre>
+
+<hr/>
+To check the translation of a request, a user must periodically do:
+
+<pre class="code">
+curl --user fred:fred -X GET https://lotus.kuee.kyoto-u.ac.jp/~frederic/LectureMT-dev/api/1.0/translation/4f697593-f6ed-49b1-85c3-2b250dad1ad2 | jq '.'
+</pre>
+
+or 
+
+<pre class="code">
+curl --user fred:fred -X GET https://lotus.kuee.kyoto-u.ac.jp/~frederic/LectureMT-dev/api/1.0/translations | jq '.'
+</pre>
+
+Eventually, we should receive a response that looks like that:
+
+<pre class="code">
+{
+    "4f697593-f6ed-49b1-85c3-2b250dad1ad2": {
+        "id": "4f697593-f6ed-49b1-85c3-2b250dad1ad2", 
+        "owner": "fred", 
+        "lang_source": "ja",
+        "lang_target": "en", 
+        "text_source": "アルゴリズムとデータ構造の講義ですけれどもきょうは整列について", 
+        "date_submission": "2019-01-23 11:55:29", 
+        "status": "PROCESSED", 
+        "text_target": "Although algorithms and data structures are a lecture, &lt;unk&gt; is a alignment."
+    }
+}
+</pre>
+
+Once a translation request has been processed, the user has the
+responsibility to remove his own translation requests.  In the future,
+they could be removed automatically after a predetermined period of
+time.
+
+<hr/>
+To remove a translation request:
+
+<pre class="code">
+curl --user fred:fred -X DELETE https://lotus.kuee.kyoto-u.ac.jp/~frederic/LectureMT-dev/api/1.0/translation/4f697593-f6ed-49b1-85c3-2b250dad1ad2 | jq '.'
+</pre>
+
+At this moment, the translation requests are handled by 3 instances of OpenNMT servers.  Each one is using a CPU on moss107.
+</body>
+</html>
