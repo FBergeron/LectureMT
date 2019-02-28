@@ -117,7 +117,7 @@ class Manager(object):
     def get_translations(self, user_id):
         if user_id == "admin":
             self.mutex.acquire()
-            translations = {k : v["status"] for k, v in self.translations.items()}
+            translations = {k : {"status": v["status"], "owner": v["owner"]} for k, v in self.translations.items()}
             self.mutex.release()
             return translations 
 
@@ -296,5 +296,6 @@ def do_start_server(config_file, log_config):
 
 if __name__ == "__main__":
     do_start_server("conf/config.ini", "conf/config_logging.ini")
+
 
 
