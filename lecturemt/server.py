@@ -116,9 +116,15 @@ class Manager(object):
 
     def get_translations(self, user_id):
         if user_id == "admin":
-            return self.translations 
-        else:
-            return {k : v for k, v in self.translations.items() if v['owner'] == user_id}
+            self.mutex.acquire()
+            translations = {k : v["status"] for k, v in self.translations.items()}
+            self.mutex.release()
+            return translations 
+
+        self.mutex.acquire()
+        translations = {k : v["status"] for k, v in self.translations.items() if v['owner'] == user_id}
+        self.mutex.release()
+        return translations 
 
     def update_status_translation(self, id, status):
         self.mutex.acquire()
@@ -130,7 +136,7 @@ class Manager(object):
         self.mutex.acquire()
         if id in self.translations:
             self.translations[id]['text_target'] = text
-            self.translations[id]['date_processsed'] = str(datetime.datetime.now().time())
+            self.translations[id]['date_processed'] = str(datetime.datetime.now())
             self.translations[id]['status'] = 'PROCESSED'
         self.mutex.release()
 
@@ -160,7 +166,10 @@ class Manager(object):
         if not translation_id in self.translations:
             return {}
         
+        self.mutex.acquire()
         translation = self.translations[translation_id]
+        self.mutex.release()
+
         if user_id == "admin":
             return translation
         
@@ -169,11 +178,14 @@ class Manager(object):
     def remove_translation(self, user_id, translation_id):
         if not translation_id in self.translations:
             return {}
-        
-        translation = self.translations[translation_id]
-        if user_id in ["admin", translation['owner']]:
-            del self.translations[translation_id]
-            return translation
+        self.mutex.acquire()
+        try:
+            translation = self.translations[translation_id]
+            if user_id in ["admin", translation['owner']]:
+                del self.translations[translation_id]
+                return translation
+        finally:
+            self.mutex.release()
 
         return {}
 

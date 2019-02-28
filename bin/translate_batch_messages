@@ -1,0 +1,81 @@
+#!/home/frederic/python_envs/web_LectureMT/bin/python -u
+#!/usr/bin/env python3
+
+import sys
+sys.path.append('.')
+
+import datetime
+
+if len(sys.argv) < 4:
+    print("Usage: translate-batch-messages host username password [loglevel]")
+    print("Example: translate-batch-messages lotus.kuee.kyoto-u.ac.jp/~frederic/LectureMT/api/1.0 fred xxxxxx DEBUG")
+    exit(1)
+
+server = sys.argv[1]
+username = sys.argv[2]
+password = sys.argv[3]
+log_level = sys.argv[4] if len(sys.argv) == 5 else "INFO"
+
+import logging
+logging.basicConfig(filename="translate_batch_message.log", filemode='w', level=log_level)
+
+from lecturemt.httpclient import LectureMT_Http_Client
+
+ordered_translations = []
+all_translations = {}
+client = LectureMT_Http_Client(server, username, password)
+i = 0
+for line in sys.stdin:
+    logging.debug("line={0}: {1}".format(i, line.rstrip()))
+    resp_post = client.post_translation("ja", "en", line.rstrip())
+    logging.debug("after post_translation resp_post={0}".format(resp_post))
+    ordered_translations.append(resp_post['id'])
+    all_translations[resp_post['id']] = {"text_source": line, "date_submission": resp_post['date_submission']}
+    i += 1
+    if (i % 30 == 0):
+        translations = client.get_translations()
+        logging.debug("l0={0}".format(len(translations)))
+        for trans_id in translations:
+            if translations[trans_id] == 'PROCESSED':
+                logging.debug("{0} has been processed.".format(trans_id))
+                translation = client.get_translation(trans_id)
+                if len(translation) > 0 and trans_id in all_translations:
+                    all_translations[trans_id]['date_processed'] = translation['date_processed']
+                    all_translations[trans_id]['text_target'] = translation['text_target']
+                    process_time = datetime.datetime.strptime(all_translations[trans_id]['date_processed'], "%Y-%m-%d %H:%M:%S.%f") - \
+                        datetime.datetime.strptime(all_translations[trans_id]['date_submission'], "%Y-%m-%d %H:%M:%S.%f")
+                    all_translations[trans_id]['process_time'] = str(process_time) 
+                else:
+                    logging.info("Ooops! {0} is not in all_translations!? translation={1}".format(trans_id, translation))
+                logging.debug("before delete")
+                resp_delete = client.delete_translation(trans_id)
+                logging.debug("after delete resp_delete={0}".format(resp_delete))
+                if len(resp_delete) > 0 and resp_delete['id'] == trans_id:
+                    logging.debug("{0} has been deleted.".format(trans_id))
+
+translations = client.get_translations()
+logging.debug("l1={0}".format(len(translations)))
+while len(translations) > 0:
+    for trans_id in translations:
+        if translations[trans_id] == 'PROCESSED':
+            logging.debug("{0} has been processed.".format(trans_id))
+            translation = client.get_translation(trans_id)
+            all_translations[trans_id]['date_processed'] = translation['date_processed']
+            all_translations[trans_id]['text_target'] = translation['text_target']
+            process_time = datetime.datetime.strptime(all_translations[trans_id]['date_processed'], "%Y-%m-%d %H:%M:%S.%f") - \
+                datetime.datetime.strptime(all_translations[trans_id]['date_submission'], "%Y-%m-%d %H:%M:%S.%f")
+            all_translations[trans_id]['process_time'] = str(process_time) 
+            resp_delete = client.delete_translation(trans_id)
+            if len(resp_delete) > 0 and resp_delete['id'] == trans_id:
+                logging.debug("{0} has been deleted.".format(trans_id))
+    translations = client.get_translations()
+    logging.debug("l1={0}".format(len(translations)))
+
+logging.debug("All translations has been processed.")
+logging.debug("all_translations={0}".format(all_translations))
+logging.debug("ordered_translations={0}".format(ordered_translations))
+
+print("Producing report...")
+for trans_id in ordered_translations:
+    print("trans_id=@@@{0}@@@".format(trans_id))
+    print("{0}@@@@@{1}@@@@@{2}".format(all_translations[trans_id]['text_source'].rstrip(), all_translations[trans_id]['text_target'].rstrip(), all_translations[trans_id]['process_time']))
