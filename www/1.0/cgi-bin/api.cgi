@@ -63,7 +63,7 @@ def add_translation():
     str_content = request.body.read().decode('utf-8')
     json_content = json.loads(str_content)
 
-    if not "lang_source" in json_content or not "lang_target" in json_content or not "text_source" in json_content:
+    if not "lang_source" in json_content or not "lang_target" in json_content or not "text_source" in json_content or json_content["text_source"].strip() == '':
         response.status = 400
         return 'Invalid request.'
 

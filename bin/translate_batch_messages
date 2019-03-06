@@ -26,6 +26,8 @@ all_translations = {}
 client = LectureMT_Http_Client(server, username, password)
 i = 0
 for line in sys.stdin:
+    if line.strip() == "":
+        continue
     logging.debug("line={0}: {1}".format(i, line.rstrip()))
     resp_post = client.post_translation("ja", "en", line.rstrip())
     logging.debug("after post_translation resp_post={0}".format(resp_post))
