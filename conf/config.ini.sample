@@ -13,26 +13,32 @@ Port: 46000
 SegmentationCommand: echo 'TEXT' | python ~/commandserver-LectureMT/src/CommandClient.py --host HOST --port PORT --bufsize 32768
 
 [TranslationServer_ja-en_1]
+Type: KNMT
 Host: host100
 Port: 46101
 
 [TranslationServer_ja-en_2]
+Type: KNMT
 Host: host100
 Port: 46102
 
 [TranslationServer_ja-en_3]
+Type: KNMT
 Host: host100
 Port: 46103
 
 [TranslationServer_ja-fr_1]
+Type: OpenNMT
 Host: host100
 Port: 46201
 
 [TranslationServer_ja-fr_2]
+Type: OpenNMT
 Host: host100
 Port: 46202
 
 [TranslationServer_ja-fr_3]
+Type: OpenNMT
 Host: host100
 Port: 46203
 

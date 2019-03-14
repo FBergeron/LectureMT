@@ -25,7 +25,7 @@ from time import sleep
 import timeit
 import uuid
 
-from translation_client import OpenNMTClient, KNMTClient
+from translation_client import OpenNMTClient, KNMTClient, TranslationClientFactory
 
 BUFFER_SIZE = 4096
 
@@ -37,7 +37,6 @@ log = None
  
 logging.basicConfig()
 
-
 class RequestQueue(queue.Queue):
 
     def __init__(self):
@@ -46,11 +45,12 @@ class RequestQueue(queue.Queue):
 
 class Worker(threading.Thread):
 
-    def __init__(self, name, lang_pair, translator_host, translator_port, segmenter_host, segmenter_port, segmenter_command, manager):
+    def __init__(self, name, lang_pair, translator_type, translator_host, translator_port, segmenter_host, segmenter_port, segmenter_command, manager):
         threading.Thread.__init__(self)
         self.name = name
         self.lang_pair = lang_pair
         self.lang_source, self.lang_target = self.lang_pair.split("-")
+        self.translator_type = translator_type
         self.translator_host = translator_host
         self.translator_port = translator_port
         self.segmenter_host = segmenter_host
@@ -81,8 +81,7 @@ class Worker(threading.Thread):
                 segmenter_output = segmenter_output.strip()
                 log.debug("W{0}: segmenter_output={1}".format(self.name, segmenter_output))
                 
-                # client = OpenNMTClient(self.translator_host, int(self.translator_port), log)
-                client = KNMTClient(self.translator_host, int(self.translator_port), log)
+                client = TranslationClientFactory.create("{0}Client".format(self.translator_type), self.translator_host, int(self.translator_port), log)
                 response = client.submit(segmenter_output)
 
                 log.debug("response={0}".format(response))
@@ -111,7 +110,12 @@ class Manager(object):
             for idx, server_section in enumerate([section for section in self.config.sections() if section.startswith("TranslationServer_") and section[18:23] == lang_pair]):
                 server_number = server_section[server_section.rfind('_') + 1:]
                 segmentation_server_prop_name = "SegmentationServer_{0}_{1}".format(lang_pair, server_number)
-                worker = Worker("Translater-{0}_{1} ({2}:{3})".format(idx, lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port']), lang_pair, self.config[server_section]['Host'], self.config[server_section]['Port'], self.config[segmentation_server_prop_name]['Host'], self.config[segmentation_server_prop_name]['Port'], self.config['Server']['SegmentationCommand'], self)
+                worker_name = "Translater-{0}_{1}_{2} ({3}:{4})".format(
+                    idx, lang_pair, self.config[server_section]['Type'], self.config[server_section]['Host'], self.config[server_section]['Port'])
+                worker = Worker(worker_name, lang_pair, self.config[server_section]['Type'], 
+                    self.config[server_section]['Host'], self.config[server_section]['Port'], 
+                    self.config[segmentation_server_prop_name]['Host'], self.config[segmentation_server_prop_name]['Port'], 
+                    self.config['Server']['SegmentationCommand'], self)
                 workerz.append(worker)
                 worker.start()
 

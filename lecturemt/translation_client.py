@@ -16,6 +16,15 @@ import sys
 
 from nmt_chainer.translation.client import Client
 
+
+class TranslationClientFactory:
+
+    @staticmethod
+    def create(class_name, host='localhost', port=46001, logger=None):
+        client = globals()[class_name](host=host, port=port, logger=logger)
+        return client
+
+
 class TranslationClient:
     
     def submit(self, text):
