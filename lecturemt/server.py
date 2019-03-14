@@ -57,6 +57,7 @@ class Worker(threading.Thread):
         self.segmenter_port = segmenter_port
         self.segmenter_command = segmenter_command
         self.manager = manager
+        log.debug("Creating worker: name={0} lang_pair={1} translator={2}:{3} segmenter={4}:{5}".format(name, lang_pair, translator_host, translator_port, segmenter_host, segmenter_port))
 
     def run(self):
         while True:
@@ -65,33 +66,33 @@ class Worker(threading.Thread):
             self.manager.update_status_translation(translation_id, "PROCESSING")
             start_request = timeit.default_timer()
             
-            log.debug("translator: {0}:{1} segmenter: {2}:{3}".format(self.translator_host, self.translator_port, self.segmenter_host, self.segmenter_port))
-            translation = self.manager.get_translation("admin", translation_id)
-            log.debug("translation: {0}".format(translation))
-            log.debug("text to translate: {0}".format(translation['text_source']))
+            log.debug("W{0}: translator: {1}:{2} segmenter: {3}:{4}".format(self.name, self.translator_host, self.translator_port, self.segmenter_host, self.segmenter_port))
+            try:
+                translation = self.manager.get_translation("admin", translation_id)
+                log.debug("W{0}: translation: {1}".format(self.name, translation))
+                log.debug("W{0}: text to translate: {1}".format(self.name, translation['text_source']))
 
-            segmenter_cmd = re.sub(r'TEXT', translation['text_source'], self.segmenter_command)
-            segmenter_cmd = re.sub(r'HOST', self.segmenter_host, segmenter_cmd)
-            segmenter_cmd = re.sub(r'PORT', self.segmenter_port, segmenter_cmd)
-            log.debug("cmd={0}".format(segmenter_cmd))
+                segmenter_cmd = re.sub(r'TEXT', translation['text_source'], self.segmenter_command)
+                segmenter_cmd = re.sub(r'HOST', self.segmenter_host, segmenter_cmd)
+                segmenter_cmd = re.sub(r'PORT', self.segmenter_port, segmenter_cmd)
+                log.debug("W{0}: cmd={1}".format(self.name, segmenter_cmd))
 
-            segmenter_output = subprocess.check_output(segmenter_cmd, shell=True, universal_newlines=True)
-            segmenter_output = segmenter_output.strip()
-            log.debug("segmenter_output={0}".format(segmenter_output))
-            
-            # client = OpenNMTClient(self.translator_host, int(self.translator_port), log)
-            client = KNMTClient(self.translator_host, int(self.translator_port), log)
-            response = client.submit(segmenter_output)
+                segmenter_output = subprocess.check_output(segmenter_cmd, shell=True, universal_newlines=True)
+                segmenter_output = segmenter_output.strip()
+                log.debug("W{0}: segmenter_output={1}".format(self.name, segmenter_output))
+                
+                # client = OpenNMTClient(self.translator_host, int(self.translator_port), log)
+                client = KNMTClient(self.translator_host, int(self.translator_port), log)
+                response = client.submit(segmenter_output)
 
-            log.debug("response={0}".format(response))
+                log.debug("response={0}".format(response))
 
-            self.manager.update_text_translation(translation_id, response)
-            processing_time = timeit.default_timer() - start_request
-            log.debug("Finish processing request {0} by worker {1} in {2} s.".format(translation_id, self.name, processing_time)) 
-
-
-
-
+                self.manager.update_text_translation(translation_id, response)
+                # self.manager.update_text_translation(translation_id, "XXX")
+                processing_time = timeit.default_timer() - start_request
+                log.debug("Finish processing request {0} by worker {1} in {2} s.".format(translation_id, self.name, processing_time)) 
+            except:
+                log.debug("Unexpected error: {0}\n".format(sys.exc_info()[0]))
 
 class Manager(object):
 
@@ -148,32 +149,36 @@ class Manager(object):
             return {}
 
         self.mutex.acquire()
-        translation['status'] = "PENDING"
-        self.translations[translation['id']] = translation
+        try:
+            translation['status'] = "PENDING"
+            self.translations[translation['id']] = translation
 
-        # For now, I assume that the translation is a single sentence.
-        # For example, a client application could split the text in several sentences and
-        # submit each sentence using the REST API.
-        # Otherwise, we need to split the text here in several sentences and
-        # associate the subtranslation (for a sentence) to the parent translation (the whole text).
+            # For now, I assume that the translation is a single sentence.
+            # For example, a client application could split the text in several sentences and
+            # submit each sentence using the REST API.
+            # Otherwise, we need to split the text here in several sentences and
+            # associate the subtranslation (for a sentence) to the parent translation (the whole text).
 
-        self.translation_request_queues[lang_pair].put(translation['id'])
-        self.mutex.release()
+            self.translation_request_queues[lang_pair].put(translation['id'])
 
-        return translation
+            return translation
+        finally:
+            self.mutex.release()
 
     def get_translation(self, user_id, translation_id):
-        if not translation_id in self.translations:
-            return {}
-        
         self.mutex.acquire()
-        translation = self.translations[translation_id]
-        self.mutex.release()
+        try:
+            if not translation_id in self.translations:
+                return {}
+            
+            translation = self.translations[translation_id]
 
-        if user_id == "admin":
-            return translation
-        
-        return translation if translation['owner'] == user_id else {}
+            if user_id == "admin":
+                return translation
+            
+            return translation if translation['owner'] == user_id else {}
+        finally:
+            self.mutex.release()
 
     def remove_translation(self, user_id, translation_id):
         if not translation_id in self.translations:
