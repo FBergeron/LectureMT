@@ -21,7 +21,7 @@ import socketserver
 import subprocess
 import sys
 import threading
-from time import sleep
+import time
 import timeit
 import uuid
 
@@ -36,6 +36,22 @@ lang_pairs = ['ja-en']
 log = None
  
 logging.basicConfig()
+
+
+class TranslationCleaner(threading.Thread):
+
+    # Every 5 minutes (or 3000 secs), check if some translations have been there for too long (more than 10 minutes (or 6000 secs)). 
+    def __init__(self, manager, delay=300, expiration_delay=600):
+        threading.Thread.__init__(self)
+        self.manager = manager
+        self.delay = delay
+        self.expiration_delay = expiration_delay
+
+    def run(self):
+        while True:
+            time.sleep(self.delay)
+            self.manager.remove_expired_translations(self.expiration_delay)
+
 
 class RequestQueue(queue.Queue):
 
@@ -87,7 +103,6 @@ class Worker(threading.Thread):
                 log.debug("response={0}".format(response))
 
                 self.manager.update_text_translation(translation_id, response)
-                # self.manager.update_text_translation(translation_id, "XXX")
                 processing_time = timeit.default_timer() - start_request
                 log.debug("Finish processing request {0} by worker {1} in {2} s.".format(translation_id, self.name, processing_time)) 
             except:
@@ -118,6 +133,8 @@ class Manager(object):
                     self.config['Server']['SegmentationCommand'], self)
                 workerz.append(worker)
                 worker.start()
+        self.translation_cleaner = TranslationCleaner(self)
+        self.translation_cleaner.start()
 
     def get_translations(self, user_id):
         if user_id == "admin":
@@ -197,6 +214,20 @@ class Manager(object):
             self.mutex.release()
 
         return {}
+
+    def remove_expired_translations(self, expiration_delay):
+        self.mutex.acquire()
+        try:
+            expired_translations = [k for (k,v) in self.translations.items() if self._is_expired(v, expiration_delay)]
+            for trans_id in expired_translations:
+                del self.translations[trans_id]
+        finally:
+            self.mutex.release()
+
+    def _is_expired(self, translation, expiration_delay):
+        delta = datetime.datetime.now() - datetime.datetime.strptime(translation['date_submission'], '%Y-%m-%d %H:%M:%S.%f')
+        return (delta.seconds > expiration_delay)
+
 
 
 class Server(socketserver.ThreadingMixIn, socketserver.TCPServer):
