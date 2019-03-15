@@ -80,7 +80,10 @@ The response should be something that looks like:
     "status": "PENDING"
 }
 </pre>
-
+<p>
+Normally, clients should remove their own translation requests once they have been processed.
+However, after a few minutes, a translation will be removed automatically to prevent accumulation of stale data.
+</p>
 <hr/>
 <p>
 To check the status of translation requests, a user must periodically do:
