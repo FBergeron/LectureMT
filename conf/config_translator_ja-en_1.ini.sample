@@ -1,0 +1,12 @@
+[Translation]
+Id: ja-en_1
+Type: KNMT
+LanguagePair: ja-en
+Host: moss105
+Port: 56102
+
+[Segmentation]
+Host: moss107
+Port: 16302
+Command: echo 'TEXT' | python /home/frederic/commandserver-LectureMT-dev/commandserver/CommandClient.py --host HOST --port PORT --bufsize 32768
+

@@ -34,44 +34,50 @@ for line in sys.stdin:
     ordered_translations.append(resp_post['id'])
     all_translations[resp_post['id']] = {"text_source": line, "date_submission": resp_post['date_submission']}
     i += 1
-    if (i % 30 == 0):
-        translations = client.get_translations()
-        logging.debug("l0={0}".format(len(translations)))
-        for trans_id in translations:
-            if translations[trans_id] == 'PROCESSED':
-                logging.debug("{0} has been processed.".format(trans_id))
-                translation = client.get_translation(trans_id)
-                if len(translation) > 0 and trans_id in all_translations:
-                    all_translations[trans_id]['date_processed'] = translation['date_processed']
-                    all_translations[trans_id]['text_target'] = translation['text_target']
-                    process_time = datetime.datetime.strptime(all_translations[trans_id]['date_processed'], "%Y-%m-%d %H:%M:%S.%f") - \
-                        datetime.datetime.strptime(all_translations[trans_id]['date_submission'], "%Y-%m-%d %H:%M:%S.%f")
-                    all_translations[trans_id]['process_time'] = str(process_time) 
-                else:
-                    logging.info("Ooops! {0} is not in all_translations!? translation={1}".format(trans_id, translation))
-                logging.debug("before delete")
-                resp_delete = client.delete_translation(trans_id)
-                logging.debug("after delete resp_delete={0}".format(resp_delete))
-                if len(resp_delete) > 0 and resp_delete['id'] == trans_id:
-                    logging.debug("{0} has been deleted.".format(trans_id))
+    # No need to remove the requests anymore
+    # as they are removed periodically and automatically.
+    #
+    # if (i % 30 == 0):
+    #     translations = client.get_translations()
+    #     logging.debug("l0={0}".format(len(translations)))
+    #     for trans_id in translations:
+    #         if translations[trans_id] == 'PROCESSED':
+    #             logging.debug("{0} has been processed.".format(trans_id))
+    #             translation = client.get_translation(trans_id)
+    #             if len(translation) > 0 and trans_id in all_translations:
+    #                 all_translations[trans_id]['date_processed'] = translation['date_processed']
+    #                 all_translations[trans_id]['text_target'] = translation['text_target']
+    #                 process_time = datetime.datetime.strptime(all_translations[trans_id]['date_processed'], "%Y-%m-%d %H:%M:%S.%f") - \
+    #                     datetime.datetime.strptime(all_translations[trans_id]['date_submission'], "%Y-%m-%d %H:%M:%S.%f")
+    #                 all_translations[trans_id]['process_time'] = str(process_time) 
+    #             else:
+    #                 logging.info("Ooops! {0} is not in all_translations!? translation={1}".format(trans_id, translation))
+    #             logging.debug("before delete")
+    #             resp_delete = client.delete_translation(trans_id)
+    #             logging.debug("after delete resp_delete={0}".format(resp_delete))
+    #             if len(resp_delete) > 0 and resp_delete['id'] == trans_id:
+    #                 logging.debug("{0} has been deleted.".format(trans_id))
 
-translations = client.get_translations()
-logging.debug("l1={0}".format(len(translations)))
-while len(translations) > 0:
-    for trans_id in translations:
-        if translations[trans_id] == 'PROCESSED':
-            logging.debug("{0} has been processed.".format(trans_id))
-            translation = client.get_translation(trans_id)
-            all_translations[trans_id]['date_processed'] = translation['date_processed']
-            all_translations[trans_id]['text_target'] = translation['text_target']
-            process_time = datetime.datetime.strptime(all_translations[trans_id]['date_processed'], "%Y-%m-%d %H:%M:%S.%f") - \
-                datetime.datetime.strptime(all_translations[trans_id]['date_submission'], "%Y-%m-%d %H:%M:%S.%f")
-            all_translations[trans_id]['process_time'] = str(process_time) 
-            resp_delete = client.delete_translation(trans_id)
-            if len(resp_delete) > 0 and resp_delete['id'] == trans_id:
-                logging.debug("{0} has been deleted.".format(trans_id))
-    translations = client.get_translations()
-    logging.debug("l1={0}".format(len(translations)))
+# No need to remove the requests anymore
+# as they are removed periodically and automatically.
+#
+# translations = client.get_translations()
+# logging.debug("l1={0}".format(len(translations)))
+# while len(translations) > 0:
+#     for trans_id in translations:
+#         if translations[trans_id] == 'PROCESSED':
+#             logging.debug("{0} has been processed.".format(trans_id))
+#             translation = client.get_translation(trans_id)
+#             all_translations[trans_id]['date_processed'] = translation['date_processed']
+#             all_translations[trans_id]['text_target'] = translation['text_target']
+#             process_time = datetime.datetime.strptime(all_translations[trans_id]['date_processed'], "%Y-%m-%d %H:%M:%S.%f") - \
+#                 datetime.datetime.strptime(all_translations[trans_id]['date_submission'], "%Y-%m-%d %H:%M:%S.%f")
+#             all_translations[trans_id]['process_time'] = str(process_time) 
+#             resp_delete = client.delete_translation(trans_id)
+#             if len(resp_delete) > 0 and resp_delete['id'] == trans_id:
+#                 logging.debug("{0} has been deleted.".format(trans_id))
+#     translations = client.get_translations()
+#     logging.debug("l1={0}".format(len(translations)))
 
 logging.debug("All translations has been processed.")
 logging.debug("all_translations={0}".format(all_translations))

@@ -7,18 +7,16 @@ __version__ = "1.0"
 __email__ = "bergeron@nlp.ist.i.kyoto-u.ac.jp"
 __status__ = "Development"
 
-from collections import deque
 import configparser
 import datetime
 import json
 import logging
 import logging.config
-import queue
+import pika
 from random import randint
 import re
 import socket
 import socketserver
-import subprocess
 import sys
 import threading
 import time
@@ -30,8 +28,6 @@ from translation_client import OpenNMTClient, KNMTClient, TranslationClientFacto
 BUFFER_SIZE = 4096
 
 EOM = "==== EOM ===="
-
-lang_pairs = ['ja-en']
 
 log = None
  
@@ -53,86 +49,55 @@ class TranslationCleaner(threading.Thread):
             self.manager.remove_expired_translations(self.expiration_delay)
 
 
-class RequestQueue(queue.Queue):
-
-    def __init__(self):
-        queue.Queue.__init__(self)
-
-
 class Worker(threading.Thread):
 
-    def __init__(self, name, lang_pair, translator_type, translator_host, translator_port, segmenter_host, segmenter_port, segmenter_command, manager):
+    def __init__(self, name, lang_pair, rabbitmq_host, rabbitmq_port, rabbitmq_username, rabbitmq_password, manager):
         threading.Thread.__init__(self)
         self.name = name
         self.lang_pair = lang_pair
-        self.lang_source, self.lang_target = self.lang_pair.split("-")
-        self.translator_type = translator_type
-        self.translator_host = translator_host
-        self.translator_port = translator_port
-        self.segmenter_host = segmenter_host
-        self.segmenter_port = segmenter_port
-        self.segmenter_command = segmenter_command
+        self.rabbitmq_host = rabbitmq_host
+        self.rabbitmq_port = rabbitmq_port
+        self.rabbitmq_username = rabbitmq_username
+        self.rabbitmq_password = rabbitmq_password
         self.manager = manager
-        log.debug("Creating worker: name={0} lang_pair={1} translator={2}:{3} segmenter={4}:{5}".format(name, lang_pair, translator_host, translator_port, segmenter_host, segmenter_port))
+        log.debug("Creating worker: name={0} lang_pair={1}".format(name, lang_pair))
 
     def run(self):
-        while True:
-            translation_id = self.manager.translation_request_queues[self.lang_pair].get(True)
-            log.debug("Start processing request {0} by worker {1}...".format(translation_id, self.name))
-            self.manager.update_status_translation(translation_id, "PROCESSING")
-            start_request = timeit.default_timer()
-            
-            log.debug("W{0}: translator: {1}:{2} segmenter: {3}:{4}".format(self.name, self.translator_host, self.translator_port, self.segmenter_host, self.segmenter_port))
-            try:
-                translation = self.manager.get_translation("admin", translation_id)
-                log.debug("W{0}: translation: {1}".format(self.name, translation))
-                log.debug("W{0}: text to translate: {1}".format(self.name, translation['text_source']))
+        credentials = pika.PlainCredentials(self.rabbitmq_username, self.rabbitmq_password)
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.rabbitmq_host, port=self.rabbitmq_port, credentials=credentials))
+        channel = connection.channel()
 
-                segmenter_cmd = re.sub(r'TEXT', translation['text_source'], self.segmenter_command)
-                segmenter_cmd = re.sub(r'HOST', self.segmenter_host, segmenter_cmd)
-                segmenter_cmd = re.sub(r'PORT', self.segmenter_port, segmenter_cmd)
-                log.debug("W{0}: cmd={1}".format(self.name, segmenter_cmd))
+        queue_name = 'trans_resp_{0}'.format(self.lang_pair)
+        channel.queue_declare(queue=queue_name, durable=True)
 
-                segmenter_output = subprocess.check_output(segmenter_cmd, shell=True, universal_newlines=True)
-                segmenter_output = segmenter_output.strip()
-                log.debug("W{0}: segmenter_output={1}".format(self.name, segmenter_output))
-                
-                client = TranslationClientFactory.create("{0}Client".format(self.translator_type), self.translator_host, int(self.translator_port), log)
-                response = client.submit(segmenter_output)
+        def process_translation_response(ch, method, properties, body):
+            trans_resp = json.loads(body)
+            self.manager.update_text_translation(trans_resp['id'], trans_resp['translated_text'])
+            ch.basic_ack(delivery_tag = method.delivery_tag)
+            log.debug("Translation request {0} has been processed.".format(trans_resp['id']))
 
-                log.debug("response={0}".format(response))
+        channel.basic_qos(prefetch_count=1)
+        channel.basic_consume(process_translation_response, queue=queue_name)
 
-                self.manager.update_text_translation(translation_id, response)
-                processing_time = timeit.default_timer() - start_request
-                log.debug("Finish processing request {0} by worker {1} in {2} s.".format(translation_id, self.name, processing_time)) 
-            except:
-                log.debug("Unexpected error: {0}\n".format(sys.exc_info()[0]))
+        channel.start_consuming()
 
 class Manager(object):
 
     def __init__(self, config):
         self.config = config
         self.translations = {}
-        self.translation_request_queues = {}
-        self.workers = {}
+        self.workers = []
         self.mutex = threading.Lock()
        
-        lang_pairs = set([section[18:23] for section in self.config.sections() if section.startswith("TranslationServer_")])
+        lang_pairs = self.config['Server']['LanguagePairs'].split(',')
         for lang_pair in lang_pairs:
-            self.translation_request_queues[lang_pair] = RequestQueue()
-            workerz = []
-            self.workers[lang_pair] = workerz
-            for idx, server_section in enumerate([section for section in self.config.sections() if section.startswith("TranslationServer_") and section[18:23] == lang_pair]):
-                server_number = server_section[server_section.rfind('_') + 1:]
-                segmentation_server_prop_name = "SegmentationServer_{0}_{1}".format(lang_pair, server_number)
-                worker_name = "Translater-{0}_{1}_{2} ({3}:{4})".format(
-                    idx, lang_pair, self.config[server_section]['Type'], self.config[server_section]['Host'], self.config[server_section]['Port'])
-                worker = Worker(worker_name, lang_pair, self.config[server_section]['Type'], 
-                    self.config[server_section]['Host'], self.config[server_section]['Port'], 
-                    self.config[segmentation_server_prop_name]['Host'], self.config[segmentation_server_prop_name]['Port'], 
-                    self.config['Server']['SegmentationCommand'], self)
-                workerz.append(worker)
-                worker.start()
+            worker_name = "Handler_{0}".format(lang_pair)
+            worker = Worker(worker_name, lang_pair, 
+                self.config['RabbitMQ']['Host'], self.config['RabbitMQ']['Port'],
+                self.config['RabbitMQ']['Username'], self.config['RabbitMQ']['Password'], self)
+            self.workers.append(worker)
+            worker.start()
+
         self.translation_cleaner = TranslationCleaner(self)
         self.translation_cleaner.start()
 
@@ -166,7 +131,7 @@ class Manager(object):
         lang_pair = "{0}-{1}".format(translation['lang_source'], translation['lang_target'])
 
         # Ignore the translation if it concerns an unsupported language pair.
-        if not lang_pair in self.translation_request_queues:
+        if not lang_pair in self.config['Server']['LanguagePairs'].split(","):
             return {}
 
         self.mutex.acquire()
@@ -180,7 +145,18 @@ class Manager(object):
             # Otherwise, we need to split the text here in several sentences and
             # associate the subtranslation (for a sentence) to the parent translation (the whole text).
 
-            self.translation_request_queues[lang_pair].put(translation['id'])
+            credentials = pika.PlainCredentials(self.config['RabbitMQ']['Username'], self.config['RabbitMQ']['Password'])
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.config['RabbitMQ']['Host'], port=self.config['RabbitMQ']['Port'], credentials=credentials))
+            channel = connection.channel()
+
+            queue_name = 'trans_req_{0}'.format(lang_pair)
+            channel.queue_declare(queue=queue_name, durable=True)
+
+            message = json.dumps(translation)
+            channel.basic_publish(exchange='', routing_key=queue_name, body=message, 
+                properties=pika.BasicProperties( delivery_mode = 2, # make message persistent
+            ))
+            connection.close() 
 
             return translation
         finally:

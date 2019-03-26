@@ -99,6 +99,14 @@ bin/deploy_www --dry-run
 ```
 
 
+#### To start the rabbitmq server (on tulip):
+
+```bash
+docker run -d --hostname rabbitmq-lecturemt-dev --name rabbitmq-lecturemt-dev -p 51010:15672 -p 51011:5672 -e  RABBITMQ_DEFAULT_USER=lecturemt-dev -e RABBITMQ_DEFAULT_PASS=****** rabbitmq:3-management
+
+```
+
+
 #### To start the server:
 
 ```bash
@@ -106,10 +114,40 @@ python lecturemt/server.py
 ```
 
 
+#### To start a translator:
+
+```bash
+python lecturemt/translator.py conf/config_translator_ja-en_1.ini conf/config_translator_ja-en_1_logging.ini
+
+```
+
+
 #### To test a request with the client:
 
 ```bash
 cat request.json | python lecturemt/client.py
+```
+
+
+#### To stop the server or a translator:
+
+```bash
+CTRL+C
+```
+
+
+#### To stop the rabbitmq server (on tulip):
+
+```bash
+docker stop rabbitmq-lecturemt-dev
+docler rm rabbitmq-lecturemt-dev
+```
+
+
+#### To remove the rabbitmq server (on tulip):
+
+```bash
+docler rm rabbitmq-lecturemt-dev
 ```
 
 
