@@ -2,11 +2,11 @@
 
 #### Environment
 
-Prepare a Python virtualenv with the required dependencies:
+Prepare a Python (3.6.5) virtualenv with the required dependencies:
 
 ```bash
-virtualenv -p python3 ~/python_envs/web_LectureMT
-source ~/python_envs/web_lectureMT
+virtualenv --python=/orange/ubrew/data/bin/python3.6 ~/python_envs/webapi_lecturemt
+source ~/python_envs/webapi_lecturemt
 pip install -r requirements.txt  
 ```
 

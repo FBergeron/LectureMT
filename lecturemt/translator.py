@@ -20,7 +20,7 @@ import threading
 import time
 import timeit
 
-from translation_client import OpenNMTClient, KNMTClient, TranslationClientFactory
+from translation_client import TensorFlowClient, OpenNMTClient, KNMTClient, TranslationClientFactory
 
 log = None
  
@@ -64,14 +64,17 @@ class Worker(threading.Thread):
                     log.debug("T-{0}: translation: {1}".format(self.name, translation))
                     log.debug("T-{0}: text to translate: {1}".format(self.name, translation['text_source']))
 
-                    segmenter_cmd = re.sub(r'TEXT', translation['text_source'], self.segmenter_command)
-                    segmenter_cmd = re.sub(r'HOST', self.segmenter_host, segmenter_cmd)
-                    segmenter_cmd = re.sub(r'PORT', self.segmenter_port, segmenter_cmd)
-                    log.debug("T-{0}: cmd={1}".format(self.name, segmenter_cmd))
+                    if self.segmenter_command == '':
+                        segmenter_output = translation['text_source']
+                    else:
+                        segmenter_cmd = re.sub(r'TEXT', translation['text_source'], self.segmenter_command)
+                        segmenter_cmd = re.sub(r'HOST', self.segmenter_host, segmenter_cmd)
+                        segmenter_cmd = re.sub(r'PORT', self.segmenter_port, segmenter_cmd)
+                        log.debug("T-{0}: cmd={1}".format(self.name, segmenter_cmd))
 
-                    segmenter_output = subprocess.check_output(segmenter_cmd, shell=True, universal_newlines=True)
-                    segmenter_output = segmenter_output.strip()
-                    log.debug("T-{0}: segmenter_output={1}".format(self.name, segmenter_output))
+                        segmenter_output = subprocess.check_output(segmenter_cmd, shell=True, universal_newlines=True)
+                        segmenter_output = segmenter_output.strip()
+                        log.debug("T-{0}: segmenter_output={1}".format(self.name, segmenter_output))
                     
                     client = TranslationClientFactory.create("{0}Client".format(self.translator_type), self.translator_host, int(self.translator_port), log)
                     translated_text = client.submit(segmenter_output)
@@ -93,8 +96,7 @@ class Worker(threading.Thread):
                 ch.basic_ack(delivery_tag = method.delivery_tag)
 
             channel.basic_qos(prefetch_count=1)
-            channel.basic_consume(process_translation_request,
-                                  queue=req_queue_name)
+            channel.basic_consume(process_translation_request, queue=req_queue_name)
 
             channel.start_consuming()
 

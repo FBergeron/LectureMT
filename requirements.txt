@@ -1,2 +1,6 @@
 bottle
 knmt
+pika == 0.13.1
+tensorflow_hub == 0.3.0
+tensor2tensor == 1.12.0
+tensorflow-serving-api == 1.12.0
