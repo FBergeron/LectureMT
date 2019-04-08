@@ -77,7 +77,7 @@ class Worker(threading.Thread):
             log.debug("Translation request {0} has been processed.".format(trans_resp['id']))
 
         channel.basic_qos(prefetch_count=1)
-        channel.basic_consume(process_translation_response, queue=queue_name)
+        channel.basic_consume(queue_name, process_translation_response)
 
         channel.start_consuming()
 
