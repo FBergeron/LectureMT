@@ -46,7 +46,9 @@ class Worker(threading.Thread):
         self.segmenter_host = segmenter_host
         self.segmenter_port = segmenter_port
         self.segmenter_command = segmenter_command
-        log.debug("Creating translation worker: name={0} lang_pair={1} translator={2}:{3} segmenter={4}:{5}".format(name, lang_pair, translator_host, translator_port, segmenter_host, segmenter_port))
+        translator_str = "{0}:{1}".format(translator_host, translator_port)
+        segmenter_str = "None" if segmenter_command == "" else "{0}:{1}".format(segmenter_host, segmenter_port) 
+        log.debug("Creating translation worker: name={0} lang_pair={1} translator={2} segmenter={3}".format(name, lang_pair, translator_str, segmenter_str))
 
     def run(self):
         while True:
