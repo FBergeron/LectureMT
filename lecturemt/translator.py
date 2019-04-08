@@ -96,7 +96,7 @@ class Worker(threading.Thread):
                 ch.basic_ack(delivery_tag = method.delivery_tag)
 
             channel.basic_qos(prefetch_count=1)
-            channel.basic_consume(process_translation_request, queue=req_queue_name)
+            channel.basic_consume(req_queue_name, process_translation_request)
 
             channel.start_consuming()
 
