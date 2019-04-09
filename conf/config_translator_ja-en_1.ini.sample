@@ -5,6 +5,15 @@ LanguagePair: ja-en
 Host: moss105
 Port: 56102
 
+# This is an optional section useful to declare parameters
+# that are specific to a particular type of translator.
+# Most of the time, this section should not be used.
+[ExtraParameters]
+UsrDir: /etc/progs/t2t_problems
+ProblemName: translate_big_aspec_with_all
+HParamsDir: /etc/fabien/t2tdata5
+ServableName: big_aspec_with_all
+
 [Segmentation]
 Host: moss107
 Port: 16302

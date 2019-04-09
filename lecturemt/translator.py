@@ -31,7 +31,7 @@ class Worker(threading.Thread):
 
     def __init__(self, name, lang_pair, 
         rabbitmq_host, rabbitmq_port, rabbitmq_username, rabbitmq_password,
-        translator_type, translator_host, translator_port, segmenter_host, segmenter_port, segmenter_command):
+        translator_type, translator_host, translator_port, segmenter_host, segmenter_port, segmenter_command, extra_params=None):
         threading.Thread.__init__(self)
         self.name = name
         self.lang_pair = lang_pair
@@ -46,9 +46,10 @@ class Worker(threading.Thread):
         self.segmenter_host = segmenter_host
         self.segmenter_port = segmenter_port
         self.segmenter_command = segmenter_command
+        self.extra_params = extra_params
         translator_str = "{0}:{1}".format(translator_host, translator_port)
         segmenter_str = "None" if segmenter_command == "" else "{0}:{1}".format(segmenter_host, segmenter_port) 
-        log.debug("Creating translation worker: name={0} lang_pair={1} translator={2} segmenter={3}".format(name, lang_pair, translator_str, segmenter_str))
+        log.debug("Creating translation worker: name={0} lang_pair={1} translator={2} segmenter={3} extra_params=".format(name, lang_pair, translator_str, segmenter_str, self.extra_params))
 
     def run(self):
         while True:
@@ -79,6 +80,9 @@ class Worker(threading.Thread):
                         log.debug("T-{0}: segmenter_output={1}".format(self.name, segmenter_output))
                     
                     client = TranslationClientFactory.create("{0}Client".format(self.translator_type), self.translator_host, int(self.translator_port), log)
+                    if self.extra_params is not None:
+                        client.set_extra_params(self.extra_params)
+                    client.prepare()
                     translated_text = client.submit(segmenter_output)
 
                     log.debug("trans_req_id={0} translated_text={1}".format(translation['id'], translated_text))
@@ -114,12 +118,14 @@ def do_start_worker(config_file, worker_config_file, worker_logging_config_file)
     worker_config = configparser.ConfigParser()
     worker_config.read(worker_config_file)
 
+    extra_params = worker_config["ExtraParameters"] if "ExtraParameters" in worker_config else None
+
     worker = Worker(worker_config['Translation']['Id'], worker_config['Translation']['LanguagePair'], 
         config['RabbitMQ']['Host'], config['RabbitMQ']['Port'], config['RabbitMQ']['Username'], config['RabbitMQ']['Password'],
         worker_config['Translation']['Type'], 
         worker_config['Translation']['Host'], worker_config['Translation']['Port'],
         worker_config['Segmentation']['Host'], worker_config['Segmentation']['Port'],
-        worker_config['Segmentation']['Command'])
+        worker_config['Segmentation']['Command'], extra_params=extra_params)
     worker.start()
 
 if __name__ == "__main__":

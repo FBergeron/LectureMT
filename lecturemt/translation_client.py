@@ -31,13 +31,19 @@ class TranslationClientFactory:
         return client
 
 
-class TranslationClient:
+class TranslationClient():
     
+    def set_extra_params(self, params):
+        pass
+
+    def prepare(self):
+        pass
+
     def submit(self, text):
         pass
 
 
-class OpenNMTClient:
+class OpenNMTClient(TranslationClient):
 
     def __init__(self, host='localhost', port=46001, logger=None):
         self.host = host
@@ -88,7 +94,7 @@ class OpenNMTClient:
         # print("data={0}".format(data))
 
 
-class KNMTClient:
+class KNMTClient(TranslationClient):
 
     def __init__(self, host='localhost', port=46001, logger=None):
         self.host = host
@@ -110,22 +116,32 @@ class KNMTClient:
         return translated_text
 
 
-class TensorFlowClient:
-
-# t2t-query-server --server=baracuda103:8500 --servable_name=big_aspec_with_all --problem=translate_big_aspec_with_all --data_dir=/loquat/fabien/t2tdata5 --t2t_usr_dir /home/fabien/progs/t2t_problems
+class TensorFlowClient(TranslationClient):
 
     def __init__(self, host='localhost', port=46001, logger=None):
         self.host = host
         self.port = port
         self.logger = logger
-        usr_dir.import_usr_dir("/home/fabien/progs/t2t_problems")
-        self.problem = registry.problem("translate_big_aspec_with_all")
-        self.hparams = tf.contrib.training.HParams(data_dir=os.path.expanduser("/loquat/fabien/t2tdata5"))
+
+    def set_extra_params(self, params):
+        if "UsrDir" in params:
+            self.usr_dir = params["UsrDir"]
+        if "ProblemName" in params:
+            self.problem_name = params["ProblemName"]
+        if "HParamsDir" in params:
+            self.hparams_dir = params["HParamsDir"]
+        if "ServableName" in params:
+            self.servable_name = params["ServableName"]
+
+    def prepare(self):
+        usr_dir.import_usr_dir(self.usr_dir)
+        self.problem = registry.problem(self.problem_name)
+        self.hparams = tf.contrib.training.HParams(data_dir=os.path.expanduser(self.hparams_dir))
         self.problem.get_hparams(self.hparams)
         self.request_fn = self._make_request_fn()
 
     def _make_request_fn(self):
-        request_fn = serving_utils.make_grpc_request_fn(servable_name="big_aspec_with_all", server="{0}:{1}".format(self.host, self.port), timeout_secs=10)
+        request_fn = serving_utils.make_grpc_request_fn(servable_name=self.servable_name, server="{0}:{1}".format(self.host, self.port), timeout_secs=10)
         return request_fn
 
     def submit(self, text):

@@ -23,8 +23,6 @@ import time
 import timeit
 import uuid
 
-from translation_client import OpenNMTClient, KNMTClient, TranslationClientFactory
-
 BUFFER_SIZE = 4096
 
 EOM = "==== EOM ===="
