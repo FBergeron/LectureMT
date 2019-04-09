@@ -96,4 +96,4 @@ translations.sort(key=lambda tuple:tuple[0])
 
 print("Producing report...")
 for trans in translations:
-    print("{0}".format(trans))
+    print("{0}: SRC: {1} TGT: {2} TIME: {3}".format(trans[0], trans[1], trans[2], trans[3]))
