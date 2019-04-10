@@ -99,11 +99,38 @@ bin/deploy_www --dry-run
 ```
 
 
-#### To start the rabbitmq server (on tulip):
+#### To start the rabbitmq server (on baracuda103):
+
+The request and response queues are implemented as rabbitmt queues. Because of this, we need to run a rabbitmq server.  The easiest way to do that is using a docker image like this:
 
 ```bash
-docker run -d --hostname rabbitmq-lecturemt-dev --name rabbitmq-lecturemt-dev -p 51010:15672 -p 51011:5672 -e  RABBITMQ_DEFAULT_USER=lecturemt-dev -e RABBITMQ_DEFAULT_PASS=****** rabbitmq:3-management
+docker run -d --rm --hostname rabbitmq-lecturemt --name rabbitmq-lecturemt -p 56080:15672 -p 56010:5672 -e RABBITMQ_DEFAULT_USER=******** -e RABBITMQ_DEFAULT_PASS=******** rabbitmq:3-management
+```
 
+Where the proper values must be provided for user and password.
+
+The web interface to rabbitmq will be accessible at http://baracuda103:46080.
+The status of the request and response queues can be seen from there.
+
+In case, you need to stop and remove the rabbitmq server:
+
+```bash
+docker stop rabbitmq-lecturemt
+```
+
+
+### To start the tensorflow model server (on baracuda103):
+
+If you're using Tensor Flow translation client, you will need to start a Tensor Flow model server.  The easiest way to achieve this is using a docker image, and more specifically, a nvidia-docker image because it's more efficient to use the GPU instead of the CPU.  We do it like this:
+
+```bash
+docker run --runtime=nvidia -d --rm -p 46101:8500 -p 46102:8501 --name tensorflow-model-lecturemt --mount type=bind,source=/data/frederic/t2ttrain/bigaspec_withall_from_m101/avg/export/,target=/models/big_aspec_with_all -e MODEL_NAME=big_aspec_with_all -e NVIDIA_VISIBLE_DEVICES=2 tensorflow/serving:1.12.0-gpu
+```
+
+In case, you need to stop and remove the rabbitmq server:
+
+```bash
+docker stop tensorflow-model-lecturemt
 ```
 
 
@@ -115,6 +142,13 @@ python lecturemt/server.py
 
 
 #### To start a translator:
+
+At the moment, the conf/config.ini file is implicitly read by the script in addition to the provided config file on the command-line.
+The translator is not linked to the server.  It's rather linked to the queues to which the server is linked.
+This indirection allows us to add as many translators as needed dynamically at runtime without restarting the server.
+So, in case that the load is too high and that the rabbitmt queues are becoming too full too quickly, it's possible to add translators.
+Eventually, this could be done automatically if the availability of the GPU are garanteed.  
+It would also be possible to add CPU-bound translators too.
 
 ```bash
 python lecturemt/translator.py conf/config_translator_ja-en_1.ini conf/config_translator_ja-en_1_logging.ini
@@ -136,21 +170,6 @@ CTRL+C
 ```
 
 
-#### To stop the rabbitmq server (on tulip):
-
-```bash
-docker stop rabbitmq-lecturemt-dev
-docler rm rabbitmq-lecturemt-dev
-```
-
-
-#### To remove the rabbitmq server (on tulip):
-
-```bash
-docler rm rabbitmq-lecturemt-dev
-```
-
-
 #### To perform a call using the REST API:
 
 ```bash
@@ -164,3 +183,12 @@ curl --user guest:guest -X DELETE $API_BASE_URL/LectureMT/api/1.0/translation/{t
 ```
 
 
+### To translate a batch of strings automatically:
+
+```bash
+time head -200 /loquat/frederic/LectureMT_data/181213_有機化学\(秋吉先生\)/20181213102652.dat | cut -c21- | tr -d '"'  | bin/translate_batch_messages lotus.kuee.kyoto-u.ac.jp/~frederic/LectureMT/api/1.0 USERNAME PASSWORD DEBUG
+```
+
+Where proper values must be provided for USERNAME and PASSWORD.
+
+In this example, the 200 first sentences will be translated.  It's possible to edit the bin/translate_batch_messages script file to adjust the worker_count if needed.  This can be useful if you're using more than one translator. 
