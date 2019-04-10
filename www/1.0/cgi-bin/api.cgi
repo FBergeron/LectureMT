@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-activate_this = '/home/frederic/python_envs/web_LectureMT/bin/activate_this.py'
+activate_this = '/home/frederic/python_envs/webapi_lecturemt/bin/activate_this.py'
 exec(compile(open(activate_this, "rb").read(), activate_this, 'exec'), dict(__file__=activate_this))
 
 from bottle import get, post, delete, route, request, response, run, template 
